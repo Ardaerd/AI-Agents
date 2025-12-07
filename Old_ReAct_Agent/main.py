@@ -1,14 +1,17 @@
 import os
-
 from typing import List
+
 from dotenv import load_dotenv
+from langchain_classic.agents.format_scratchpad import format_log_to_str
+from langchain_classic.agents.output_parsers import \
+    ReActSingleInputOutputParser
+from langchain_classic.schema import AgentAction, AgentFinish
+from langchain_classic.tools import Tool
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import render_text_description, tool
-from langchain_openai import ChatOpenAI, AzureChatOpenAI
-from langchain_classic.tools import Tool
-from langchain_classic.agents.output_parsers import ReActSingleInputOutputParser
-from langchain_classic.schema import AgentAction, AgentFinish
-from langchain_classic.agents.format_scratchpad import format_log_to_str
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
+
+from callbacks import AgentCallbackHandler
 
 load_dotenv()
 
@@ -18,6 +21,7 @@ BASE_URL = os.getenv("BASE_URL")
 AZURE_ENDPOINT = os.getenv("azure_endpoint")
 API_KEY = os.getenv("api_key")
 API_VERSION = os.getenv("azure_api_version")
+
 
 @tool
 def get_text_length(text: str) -> int:
@@ -29,11 +33,13 @@ def get_text_length(text: str) -> int:
 
     return len(text)
 
+
 def find_tool_by_name(tools: List[tool], tool_name: str) -> Tool:
     for tool in tools:
         if tool.name == tool_name:
             return tool
     raise ValueError(f"Tool with name {tool_name} not found.")
+
 
 def main():
 
@@ -76,15 +82,21 @@ def main():
         api_key=API_KEY,
         api_version=API_VERSION,
         temperature=0,
-        stop=["Observation:", "Observation:\n"]
+        stop=["Observation:", "Observation:\n"],
+        callbacks=[AgentCallbackHandler()],
     )
 
     intermediate_steps = []
 
-    agent = {
-                "input": lambda x: x["input"],
-                "agent_scratchpad": lambda x: format_log_to_str(x["agent_scratchpad"]),
-            } | prompt | llm | ReActSingleInputOutputParser()
+    agent = (
+        {
+            "input": lambda x: x["input"],
+            "agent_scratchpad": lambda x: format_log_to_str(x["agent_scratchpad"]),
+        }
+        | prompt
+        | llm
+        | ReActSingleInputOutputParser()
+    )
 
     agent_step = ""
 
@@ -109,7 +121,6 @@ def main():
 
     if isinstance(agent_step, AgentFinish):
         print(agent_step.return_values)
-
 
 
 if __name__ == "__main__":
