@@ -8,6 +8,7 @@ from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_classic.tools import Tool
 from langchain_classic.agents.output_parsers import ReActSingleInputOutputParser
 from langchain_classic.schema import AgentAction, AgentFinish
+from langchain_classic.agents.format_scratchpad import format_log_to_str
 
 load_dotenv()
 
@@ -57,7 +58,7 @@ def main():
         Begin!
 
         Question: {input}
-        Thought:
+        Thought: {agent_scratchpad}
     """
 
     prompt = PromptTemplate.from_template(template=tempalte).partial(
@@ -78,15 +79,38 @@ def main():
         stop=["Observation:", "Observation:\n"]
     )
 
-    agent = {"input": lambda x: x["input"]} | prompt | llm | ReActSingleInputOutputParser()
+    intermediate_steps = []
 
-    agent_step: Union[AgentAction, AgentFinish] = agent.invoke({"input": 'What is the length of the "Hello, world!"?'})
-    print(agent_step)
+    agent = {
+                "input": lambda x: x["input"],
+                "agent_scratchpad": lambda x: format_log_to_str(x["agent_scratchpad"]),
+            } | prompt | llm | ReActSingleInputOutputParser()
 
-    if isinstance(agent_step, AgentAction):
-        tool = find_tool_by_name(tools, agent_step.tool)
-        observation = tool.run(agent_step.tool_input)
-        print(f"Observation: {observation}")
+    agent_step = ""
+
+    while not isinstance(agent_step, AgentFinish):
+        agent_step: Union[AgentAction, AgentFinish] = agent.invoke(
+            {
+                "input": "What is the length of the word: dog",
+                "agent_scratchpad": intermediate_steps,
+            }
+        )
+
+        print(agent_step)
+
+        if isinstance(agent_step, AgentAction):
+            tool_name = agent_step.tool
+            tool_to_use = find_tool_by_name(tools, tool_name)
+            tool_input = agent_step.tool_input
+            observation = tool_to_use.run(tool_input)
+            print(f"{observation=}")
+
+            intermediate_steps.append((agent_step, str(observation)))
+
+    if isinstance(agent_step, AgentFinish):
+        print(agent_step.return_values)
+
+
 
 if __name__ == "__main__":
     main()
