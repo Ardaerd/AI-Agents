@@ -1,6 +1,7 @@
 import os
 from typing import List
 
+from callbacks import AgentCallbackHandler
 from dotenv import load_dotenv
 from langchain_classic.agents.format_scratchpad import format_log_to_str
 from langchain_classic.agents.output_parsers import \
@@ -10,8 +11,6 @@ from langchain_classic.tools import Tool
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import render_text_description, tool
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
-
-from callbacks import AgentCallbackHandler
 
 load_dotenv()
 
@@ -72,19 +71,29 @@ def main():
         tool_names=", ".join([tool.name for tool in tools]),
     )
 
-    # llm = ChatOpenAI(
-    #     temperature=0, stop=["Observation:", "Observation:\n"], base_url=BASE_URL, api_key=AUTH_CODE, model="gpt-oss-120b-v2"
-    # )
-
-    llm = AzureChatOpenAI(
-        azure_deployment="gpt-4.1",  # Your deployment name
-        azure_endpoint=AZURE_ENDPOINT,
-        api_key=API_KEY,
-        api_version=API_VERSION,
+    llm = ChatOpenAI(
         temperature=0,
-        stop=["Observation:", "Observation:\n"],
+        # stop=["Observation:", "Observation:\n"],
+        base_url=BASE_URL,
+        api_key=AUTH_CODE,
+        model="gpt-oss-120b",
         callbacks=[AgentCallbackHandler()],
+        extra_body={
+            "reasoning": {
+                "effort": "high",  # "low" | "medium" | "high"
+            }
+        },
     )
+
+    # llm = AzureChatOpenAI(
+    #     azure_deployment="gpt-4.1",  # Your deployment name
+    #     azure_endpoint=AZURE_ENDPOINT,
+    #     api_key=API_KEY,
+    #     api_version=API_VERSION,
+    #     temperature=0,
+    #     stop=["Observation:", "Observation:\n"],
+    #     callbacks=[AgentCallbackHandler()],
+    # )
 
     intermediate_steps = []
 

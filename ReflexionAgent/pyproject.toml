@@ -1,0 +1,19 @@
+[project]
+name = "reflexionagent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "black>=25.12.0",
+    "ddgs>=9.10.0",
+    "duckduckgo-search>=8.1.1",
+    "isort>=7.0.0",
+    "langchain>=1.2.0",
+    "langchain-community>=0.4.1",
+    "langchain-core>=1.2.4",
+    "langchain-openai>=1.1.6",
+    "langgraph>=1.0.5",
+    "pydantic>=2,<3",
+    "python-dotenv>=1.2.1",
+]
